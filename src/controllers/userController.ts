@@ -1,5 +1,10 @@
 import express, { Express, NextFunction, Request, Response } from "express";
-import { findExistingUser, findUser, insertUser } from "../db/users";
+import {
+  findExistingUser,
+  findUser,
+  getUserProfile,
+  insertUser,
+} from "../db/users";
 import zod from "zod";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/config";
@@ -34,7 +39,7 @@ export async function registerUser(req: Request, res: Response) {
 
   const user = await insertUser(firstName, lastName, email, password);
 
-  const token = jwt.sign({ userID: user.id }, JWT_SECRET, { expiresIn: "14d" });
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "14d" });
 
   res.json({
     message: "User created successfully",
@@ -60,10 +65,31 @@ export async function loginUser(
       message: "Invalid email or password",
     });
   }
-  const token = jwt.sign({ userID: user.id }, JWT_SECRET, { expiresIn: "14d" });
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "14d" });
 
   res.json({
     token,
     msg: "Login successful!",
+  });
+}
+export interface CustomRequest extends Request {
+  userId?: string;
+}
+
+export async function getUserDetails(
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const userId: any = req.headers.userId;
+
+  const user = await getUserProfile(userId);
+
+  res.json({
+    user: {
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      email: user?.email,
+    },
   });
 }
